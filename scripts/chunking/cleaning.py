@@ -11,6 +11,8 @@ SECTION_TITLE_PATTERN = re.compile(
 )
 
 def remove_footers(text: str) -> str:
+    """Removes common footer patterns from the text."""
+    
     for pattern in FOOTER_PATTERNS:
         text = re.sub(pattern, "", text)
     return text
