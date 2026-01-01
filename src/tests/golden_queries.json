@@ -1,0 +1,23 @@
+[
+  {
+    "id": "GQ_001",
+    "query": "management body responsibilities for ICT governance",
+    "vector_store_key": "cssf",
+    "authority": "CSSF",
+    "jurisdiction": "LU",
+    "expected_chunk_ids": [
+      "cssf_20_750_3_2_1"
+    ]
+  },
+  {
+    "id": "GQ_002",
+    "query": "ICT risk management and incident reporting requirements",
+    "vector_store_key": "dora",
+    "authority": "European Union",
+    "jurisdiction": "EU",
+    "expected_chunk_ids": [
+      "dora_article_16",
+      "dora_article_17"
+    ]
+  }
+]

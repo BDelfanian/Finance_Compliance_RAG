@@ -1,10 +1,17 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import sys
+from pathlib import Path
 import json
-from run_embeddings_retrieval import retrieve
 from io import BytesIO
 import base64
+
+# --- Path bootstrap ---
+ROOT_DIR = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT_DIR))
+
+from src.run_embeddings_retrieval import retrieve
 
 st.set_page_config(page_title="Regulatory Retrieval RAG", layout="wide")
 

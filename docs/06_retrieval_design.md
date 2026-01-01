@@ -1,38 +1,32 @@
-# STEP 4 — Embeddings & Retrieval
+# STEP 4 — Embeddings, Retrieval & Validation
 
 **Compliance-Safe RAG System**
-
-**Scope:** This step establishes a controlled, auditable, and regulation-aware retrieval layer for previously validated chunks (STEP 3) from CSSF, DORA, and EBA sources.
-It supports **semantic retrieval with legal fidelity**, auditability, and cross-regulator aggregation.
 
 ---
 
 ## 4.1 Objective
 
-The objective of STEP 4 is to enable **semantic retrieval** of regulatory content while ensuring:
+The objective of STEP 4 is to establish a **controlled, auditable, and regulation-aware semantic retrieval layer** for previously validated regulatory chunks (STEP 3), covering CSSF, DORA, and EBA sources.
 
-* **Legal fidelity**: Only approved regulatory text is retrievable.
-* **Governance**: Hard filtering prevents retrieval outside scope, jurisdiction, or authority.
-* **Auditability**: Each retrieval is traceable, timestamped, and reproducible.
-* **Compliance safety**: Prevents hallucination and cross-regulatory contamination.
-* **Operational efficiency**: Batch embedding and persistent vector stores accelerate queries; session caching reduces repeated calls.
+STEP 4 ensures:
 
-> STEP 4 is strictly a retrieval layer; it does not interpret, summarize, or provide legal advice.
+* **Legal fidelity** — only approved regulatory text is retrievable
+* **Governance enforcement** — symbolic hard filters prevent out-of-scope retrieval
+* **Auditability** — each retrieval is traceable, timestamped, and reproducible
+* **Compliance safety** — prevents hallucination and cross-regulatory contamination
+
+> STEP 4 is strictly a retrieval layer. It does **not** interpret, summarize, or provide legal advice.
 
 ---
 
 ## 4.2 Inputs from STEP 3
 
-**Assumptions:**
+### Assumptions
 
-* Chunks are **validated, regulation-aware**, and frozen.
-* Stored as JSON with metadata fields including:
+* All chunks are **validated, regulation-aware, and frozen**
+* Stored as JSON with mandatory metadata fields
 
-  * `chunk_id`, `document_id`, `source_regulation`, `authority`
-  * `binding_level`, `temporal_validity`, `jurisdiction`
-  * `chunk_type`, `text`, `validation_status`
-
-**Example JSON structure:**
+### Required Metadata Schema
 
 ```json
 {
@@ -53,41 +47,43 @@ The objective of STEP 4 is to enable **semantic retrieval** of regulatory conten
 }
 ```
 
+Only chunks with `validation_status = approved` are eligible for embedding and retrieval.
+
 ---
 
 ## 4.3 Embedding Strategy
 
-### 4.3.1 Data for Embeddings
+### 4.3.1 Embedded Data
 
-* **Embed only:** `text`, `chunk_id`
-* **Do not embed:** metadata, interpretations, summaries, cross-chunk references
+* **Embed only**: `text`, `chunk_id`
+* **Never embed**: metadata, interpretations, summaries, cross-chunk references
 
-### 4.3.2 Vector Store Segmentation
+This ensures semantic vectors represent **pure regulatory language** only.
 
-| Vector Store | Contents                     |
-| ------------ | ---------------------------- |
-| `vs_cssf`    | CSSF circulars & regulations |
-| `vs_dora`    | DORA legal texts             |
-| `vs_eba`     | EBA Guidelines / RTS / ITS   |
+---
 
-**Optional further segmentation:**
+### 4.3.2 Segmented Vector Stores
 
-* Binding vs non-binding
-* Level 1 vs Level 2 / 3 texts
+| Vector Store | Contents |
+|-------------|----------|
+| `vs_cssf` | CSSF circulars & regulations |
+| `vs_dora` | DORA Level 1 legal text |
+| `vs_eba` | EBA Guidelines, RTS, ITS |
+
+Segmentation prevents:
+
+* Cross-authority contamination
+* Normative hierarchy conflicts
+* Ambiguous legal applicability
+
+---
 
 ### 4.3.3 Embedding Model Requirements
 
-* Deterministic or version-locked for **reproducibility**
-* No training on user queries for **data protection**
-* Stable dimensionality for **auditability**
-* EU-hostable or equivalent for **sovereignty**
-
-### 4.3.4 Operational Enhancements
-
-* **Batch embedding** for large chunk sets
-* **Persistent vector store** via FAISS
-* **Session caching** to reduce repeated embedding calls
-* **Cross-regulator aggregation** for multi-source queries
+* Version-locked and deterministic
+* Stable dimensionality
+* No training on user queries
+* Compatible with EU data sovereignty expectations
 
 ---
 
@@ -95,24 +91,29 @@ The objective of STEP 4 is to enable **semantic retrieval** of regulatory conten
 
 ### 4.4.1 Two-Phase Retrieval
 
-**Phase 1 — Hard Filtering (Symbolic)**
+#### Phase 1 — Hard Filtering (Symbolic)
 
-Filters applied **before semantic search**:
+Filters applied **before** semantic search:
 
-* Authority (CSSF, DORA, EBA)
+* Authority
 * Jurisdiction
 * Temporal validity
 * Binding level
-* Validation status = approved
+* Validation status
 * Document scope
 
-**Phase 2 — Semantic Retrieval (Vector Search)**
+Semantic similarity **cannot override** legal applicability.
+
+---
+
+#### Phase 2 — Semantic Retrieval (Vector Search)
 
 * Performed only on filtered chunks
-* k-NN search with configurable `k` (default: 5)
-* Similarity threshold enforced (configurable)
-* Semantic relevance **cannot override legal applicability**
-* Cross-regulator results are **merged and deduplicated**
+* k-NN search using cosine similarity (FAISS Inner Product on L2-normalized vectors)
+* Conservative `k` (typically 5–10)
+* Similarity threshold enforced
+
+---
 
 ### 4.4.2 Retrieval Output Contract
 
@@ -136,103 +137,105 @@ Filters applied **before semantic search**:
 }
 ```
 
-* Logged and persisted for **audit**
-* Replayable for regulator inspection
-* Includes **chunk text** for downstream citation-bound answers
-* Compatible with CSV/PDF export
+All outputs are logged and replayable for audit purposes.
 
 ---
 
 ## 4.5 Compliance Controls
 
-1. **No hallucination by design**:
-
-   * No matching chunk → no answer
+1. **No hallucination by design**
+   * No matching chunk → no answer downstream
    * Mandatory citation in STEP 5
 
-2. **Auditability & Explainability**:
-
+2. **Auditability & Explainability**
    * Query → chunk traceability
-   * Model version traceability
-   * Re-executable for regulatory audit
+   * Model and index version traceability
+   * Deterministic replay
 
-3. **Separation of duties**:
-
-   * Retrieval only
-   * Reasoning / answer generation in STEP 5
-
-4. **UI Enhancements**:
-
-   * Highlighting of query-relevant terms (stopwords filtered)
-   * CSV & PDF exports with metadata, chunk text, similarity, citation
-   * Session caching for repeated queries
+3. **Separation of duties**
+   * STEP 4: retrieval only
+   * STEP 5: answer generation
 
 ---
 
-## 4.6 Out of Scope
+## 4.6 Retrieval Validation Protocol
 
-* STEP 4 does **not** interpret regulatory content
-* STEP 4 does **not** rank authority hierarchies
-* STEP 4 does **not** generate legal advice
+### 4.6.1 Validation Objectives
 
-These responsibilities are reserved for **STEP 5 (Answer Construction)** with governance and human oversight.
+The validation suite ensures:
 
----
-
-## 4.7 Transition Statement
-
-> **STEP 3 is frozen.**
-> STEP 4 establishes a **compliance-safe retrieval layer**, enabling **regulated semantic access** to validated CSSF, DORA, and EBA content.
-> It ensures **legal fidelity, governance, auditability, and operational efficiency** in accordance with regulatory expectations.
+* Semantic relevance
+* Regulatory isolation
+* Deterministic behavior
+* Threshold enforcement
+* Schema integrity
 
 ---
 
-## Reference Architecture
+### 4.6.2 Test Assets
 
-**Figure 1 — STEP 4 Compliance-Safe Retrieval Architecture**
-
-```mermaid
-flowchart TD
-    subgraph Input[STEP 3: Validated Chunks]
-        A[CSSF Chunks JSON]
-        B[DORA Chunks JSON]
-        C[EBA Chunks JSON]
-    end
-
-    subgraph Embedding["Embedding Layer"]
-        A --> E1[Embed Text → Vector + chunk_id]
-        B --> E2[Embed Text → Vector + chunk_id]
-        C --> E3[Embed Text → Vector + chunk_id]
-        E1 --> VS1[vs_cssf Vector Store -Persistent, FAISS]
-        E2 --> VS2[vs_dora Vector Store -Persistent, FAISS]
-        E3 --> VS3[vs_eba Vector Store -Persistent, FAISS]
-    end
-
-    subgraph Retrieval["STEP 4: Compliance-Safe Retrieval"]
-        subgraph HardFilter["Phase 1: Hard Filtering -Symbolic"]
-            HF1[Filter by Authority]
-            HF2[Filter by Jurisdiction]
-            HF3[Filter by Temporal Validity]
-            HF4[Filter by Binding Level]
-            HF5[Filter by Validation Status]
-        end
-
-        subgraph VectorSearch["Phase 2: Semantic Retrieval"]
-            VS[Vector Search: k-NN with threshold]
-            CrossAgg[Cross-Regulator Aggregation]
-        end
-
-        HardFilter --> VectorSearch
-    end
-
-    subgraph Output["Retrieval Output Contract"]
-        RO[JSON with: query_id, retrieved_chunks, filters_applied, timestamp, chunk text]
-        RO --> CSV[Optional CSV Export]
-        RO --> PDF[Optional PDF Export with highlighted terms]
-    end
-
-    VS1 --> HF1
-    VS2 --> HF1
-    VS3 --> HF1
-    VectorSearch --> CrossAgg --> RO
 ```
+src/
+├─ run_embeddings_retrieval.py
+└─ tests/
+   ├─ test_retrieval_validation.py
+   ├─ golden_queries.json
+   └─ __init__.py
+```
+
+Golden queries define **expected retrieval behavior** and are SME-approved.
+
+---
+
+### 4.6.3 Test Execution
+
+Run tests from project root:
+
+```bash
+pytest src/tests -v
+```
+
+All tests must pass before STEP 5 activation.
+
+---
+
+## 4.7 Out of Scope
+
+* Legal interpretation
+* Authority hierarchy resolution
+* Legal advice generation
+
+---
+
+## 4.8 Transition Statement
+
+> STEP 3 is frozen.
+> STEP 4 establishes a compliance-safe, auditable retrieval layer.
+> Passing validation is a mandatory gate to STEP 5.
+
+---
+
+## 4.9 Change Log
+
+| Version | Date | Change | Approved By |
+|-------|------|-------|-------------|
+| 1.0 | 2025-12-30 | Initial STEP 4 definition | Compliance Lead |
+| 1.1 | 2026-01-01 | Added retrieval validation & test harness | Model Risk |
+
+---
+
+## 4.10 Model Risk Management (MRM) Sign-Off
+
+**Model Component:** STEP 4 — Embeddings & Retrieval
+
+| Role | Name | Signature | Date |
+|-----|------|-----------|------|
+| Model Owner | | | |
+| Compliance Officer | | | |
+| Legal Counsel | | | |
+| Model Risk Management | | | |
+
+**Approval Statement**
+
+> The STEP 4 retrieval layer has been reviewed and validated. It satisfies governance, auditability, and regulatory compliance requirements and is approved for controlled downstream use in STEP 5.
+
