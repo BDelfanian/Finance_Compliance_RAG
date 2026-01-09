@@ -5,7 +5,7 @@ Uses STEP 4 retrieval + STEP 5 engine to provide a clean, audit-friendly interfa
 
 import streamlit as st
 from datetime import datetime
-from citation_bound_answer_generation import generate_citation_bound_answer, generate_citation_bound_answer_cached
+from src.generation.citation_bound_answer_generation import generate_citation_bound_answer, generate_citation_bound_answer_cached
 import json
 
 # -------------------------------

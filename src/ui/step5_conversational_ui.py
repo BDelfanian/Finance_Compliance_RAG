@@ -4,7 +4,7 @@ Supports follow-ups and remembers previous queries in the session.
 """
 
 import streamlit as st
-from citation_bound_answer_generation import generate_citation_bound_answer_cached
+from src.generation.citation_bound_answer_generation import generate_citation_bound_answer_cached
 
 # -------------------------------
 # Page Configuration

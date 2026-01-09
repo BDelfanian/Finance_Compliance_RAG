@@ -8,7 +8,7 @@ import os
 import json
 import hashlib
 from datetime import datetime
-from run_embeddings_retrieval import retrieve, vector_store, embed_text
+from src.retrieval.run_embeddings_retrieval import retrieve, vector_store, embed_text
 import openai
 
 
